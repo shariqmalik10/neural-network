@@ -49,22 +49,33 @@ class NeuralNetwork:
             for j in range(len(self.nn[0])):
                 self.nn[0][j]["act_val"] = df.iloc[i][j]
 
+            self.forward_pass()
             print(f"Epoch: {i}/{len(X)}")
 
-    def activate(self, curr_neuron_index, neuron):
-        pass
+    def relu(self, act_val):
+        return max(0, act_val)
 
-    def forward_pass(self, features):
+    def activate(self, curr_neuron_index, neuron):
+        return self.relu(
+            np.dot(
+                neuron["weights"],
+                [i["act_val"] for i in self.nn[curr_neuron_index - 1]],
+            )
+        )
+        # return neuron['act_val']
+
+    def forward_pass(self):
         """
         Do calculation for the forward pass in order to get the proper activation values for the nodes in the hidden layers.
         """
+        # first layer is input layer so it is ommitted from the loop
         for i in range(1, len(self.nn)):
             for neuron in self.nn[i]:
                 # calculate the activation of each neuron in the current hidden layer using the prev layer's activation
                 neuron["act_val"] = self.activate(i, neuron)
 
     def desc(self):
-        return self.nn[0]
+        return self.nn
 
     def __str__(self):
         pass
