@@ -4,7 +4,7 @@ import pandas as pd
 
 
 class NeuralNetwork:
-    def __init__(self, size, hidden_layers, output):
+    def __init__(self, size, hidden_layers=0, output=False):
         """
         Initializing a neural network.
         The number of neurons will depend on the number of features in the dataset.
@@ -21,12 +21,16 @@ class NeuralNetwork:
         # structure of the neurons : { weights=[], bias=0, act_val=0 }
 
         # initialize the first layer. this will have neurons equal to number of features in the dataset
-        self.input_layer = [{"weights": [], "bias": 0, "act_val": 0}] * size
-        self.nn.append(self.input_layer)
+        # self.input_layer = [{"weights": [], "bias": 0, "act_val": 0}] * size
+        # self.nn.append(self.input_layer)
         # initialize the hidden layers
-        for i in range(1, hidden_layers + 1):
+        for i in range(hidden_layers + 1):
             new_layer = []
-            n_count = len(self.nn[i - 1])
+            if i==0:
+                n_count = size
+            else:
+                n_count = len(self.nn[i-1])
+            # n_count = len(self.nn[i])
             # each hidden layer has 16 neurons by default
             for _ in range(16):
                 # initialize each neuron with random weights equal to number of neurons in the previous layer.
@@ -40,18 +44,18 @@ class NeuralNetwork:
             self.nn.append(new_layer)
         
         #add the output layer
-        n_count = len(self.nn[len(self.nn)-1])
-        new_layer = []
-        for _ in range(output):
-            new_layer.append(
-                {
-                    "weights": [random.random() for i in range(n_count)],
-                    "bias": random.random(),
-                    "act_val": None,
-                }
-            )
+        # n_count = len(self.nn[len(self.nn)-1])
+        # new_layer = []
+        # for _ in range(output):
+        #     new_layer.append(
+        #         {
+        #             "weights": [random.random() for i in range(n_count)],
+        #             "bias": random.random(),
+        #             "act_val": None,
+        #         }
+        #     )
         
-        self.nn.append(new_layer)
+        # self.nn.append(new_layer)
 
         self.current_idx = len(self.nn)-1
 
@@ -72,7 +76,7 @@ class NeuralNetwork:
         self.nn.append(new_layer)
         self.current_idx = len(self.nn)-1
 
-    def train(self, X, y, lr, epochs=5):
+    def train(self, X, Y, lr, epochs):
         """
         In this train function I am going to assign the first layer of neurons with the activation values from the corresponding features
 
@@ -86,13 +90,16 @@ class NeuralNetwork:
 
         for k in range(epochs):
             total_loss = 0
-            for i in range(5):
+            for i in range(len(X)):
                 #assumption: the dataframe is converted to a list like format. 
                 #NOTE: add iloc for dataframe support
                 x = X[i]
+                y = Y[i]
                 #forward pass from the input layer to the output layer all done inside this function
                 f_prop = self.forward_pass(x)
                 # print(f"f_prop: {f_prop}\n")
+                #returning loss for each prediction
+                # print(f"true values: {y}, f_prop values")
                 total_loss += sum([(y[j] - f_prop[j]) ** 2 for j in range(len(f_prop))])
                 # ---------------------------------- #
                 self.backward_propagation(x, y, lr)
@@ -109,7 +116,7 @@ class NeuralNetwork:
         if derivative:
             self.sigmoid_derivative(act_val)
         
-        return 1.0 / (1.0 + np.exp(-act_val))
+        return 1.0 / (1.0 + np.exp(-1*act_val))
 
     def sigmoid_derivative(self, act_val):
         return act_val * (1.0-act_val)
@@ -124,10 +131,11 @@ class NeuralNetwork:
 
     def activate(self, x, neuron):
         
-        act = neuron['bias']
-        for i in range(len(neuron['weights'])):
-            act+= (neuron['weights'][i] * x[i])
-
+        act = 0
+        for i in range(len(x)):
+            act += (neuron['weights'][i] * x[i])
+        
+        act += neuron['bias']
         return self.sigmoid(act)
 
     def forward_pass(self, x):
@@ -136,9 +144,9 @@ class NeuralNetwork:
         """
         # first layer is input layer so it is ommitted from the loop
         # print(f"starting act_vals: {x}")
-        for i in range(1, len(self.nn)):
+        for layer in self.nn:
             neuron_act_vals = []
-            for neuron in self.nn[i]:
+            for neuron in layer:
                 # calculate the activation of each neuron in the current hidden layer using the prev layer's activation
                 neuron["act_val"] = self.activate(x, neuron)
                 neuron_act_vals.append(neuron["act_val"])
@@ -155,7 +163,7 @@ class NeuralNetwork:
     
     def backward_propagation(self, X, expected, lr):
         #backprop starting from the final layer 
-        for i in reversed(range(1, len(self.nn))):
+        for i in reversed(range(len(self.nn))):
             layer = self.nn[i]
             layer_errors = list()
             if i == len(self.nn) - 1:
@@ -177,13 +185,17 @@ class NeuralNetwork:
                 neuron['error'] = layer_errors[j] * self.sigmoid(neuron['act_val'], derivative=True)
             
         #after all the neuron error calculations are done, we move onto weight and bias updates
-        for k in range(1, len(self.nn)):
+        for k in range(len(self.nn)):
             layer = self.nn[k]
             for neuron in layer:
                 for j in range(len(neuron['weights'])):
-                    neuron['weights'][j] += lr*X[j]*neuron['error']
-                neuron['bias'] =+ lr * neuron['error']
-            X = [neuron['act_val'] for neuron in layer] 
+                    neuron['weights'][j] += lr * X[j] * neuron['error']
+                neuron['bias'] += lr * neuron['error']
+            X = [neuron['act_val'] for neuron in self.nn[k]] 
 
     def desc(self):
         return self.nn
+    
+    def predict(self, inputs):
+        output = self.forward_pass(inputs)
+        return output
