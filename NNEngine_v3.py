@@ -72,7 +72,7 @@ class NeuralNetwork:
         self.nn.append(new_layer)
         self.current_idx = len(self.nn)-1
 
-    def train(self, X, y, epochs=5):
+    def train(self, X, y, lr, epochs=5):
         """
         In this train function I am going to assign the first layer of neurons with the activation values from the corresponding features
 
@@ -87,19 +87,19 @@ class NeuralNetwork:
         for k in range(epochs):
             total_loss = 0
             for i in range(5):
-                x = X.iloc[i]
+                #assumption: the dataframe is converted to a list like format. 
+                #NOTE: add iloc for dataframe support
+                x = X[i]
                 #forward pass from the input layer to the output layer all done inside this function
                 f_prop = self.forward_pass(x)
                 # print(f"f_prop: {f_prop}\n")
-
+                total_loss += sum([(y[j] - f_prop[j]) ** 2 for j in range(len(f_prop))])
                 # ---------------------------------- #
                 self.backward_propagation(x, y, lr)
 
 
-                
-
             # print(self.nn[0])
-            print(f"Epoch: {k+1}/{epochs}")
+            print(f"Epoch: {k+1}/{epochs} - Total Loss: {total_loss}")
             
 
     def relu(self, act_val):
@@ -135,7 +135,7 @@ class NeuralNetwork:
         Do calculation for the forward pass in order to get the proper activation values for the nodes in the hidden layers.
         """
         # first layer is input layer so it is ommitted from the loop
-        print(f"starting act_vals: {x}")
+        # print(f"starting act_vals: {x}")
         for i in range(1, len(self.nn)):
             neuron_act_vals = []
             for neuron in self.nn[i]:
@@ -143,14 +143,14 @@ class NeuralNetwork:
                 neuron["act_val"] = self.activate(x, neuron)
                 neuron_act_vals.append(neuron["act_val"])
 
-            print(f"Neuron value: {neuron_act_vals}")
-            print("-"*30)
+            # print(f"Neuron value: {neuron_act_vals}")
+            # print("-"*30)
                 # act = neuron["act_val"]
                 # print(f"neuron activation value calculated: {act}")
             x = neuron_act_vals
         # print([i['act_val'] for i in self.nn[len(self.nn)-1]])
 
-        print(f"final act_vals: {x} \n" )
+        # print(f"final act_vals: {x} \n" )
         return x
     
     def backward_propagation(self, X, expected, lr):
@@ -168,19 +168,22 @@ class NeuralNetwork:
             else:
                 #for all the hidden layer neurons get the error by using the eq: neuron_weights * neuron['error']
                 for j in range(len(layer)):
-                    neuron_error = sum([neuron['weights'][j] *neuron['error'] for neuron in self.nn[i+1]])
+                    neuron_error = sum([neuron['weights'][j] * neuron['error'] for neuron in self.nn[i+1]])
                     layer_errors.append(neuron_error)
             
+            #to calculate neuron error
             for j in range(len(layer)):
                 neuron = layer[j]
                 neuron['error'] = layer_errors[j] * self.sigmoid(neuron['act_val'], derivative=True)
-                
-                
-
-
-
-                
-
+            
+        #after all the neuron error calculations are done, we move onto weight and bias updates
+        for k in range(1, len(self.nn)):
+            layer = self.nn[k]
+            for neuron in layer:
+                for j in range(len(neuron['weights'])):
+                    neuron['weights'][j] += lr*X[j]*neuron['error']
+                neuron['bias'] =+ lr * neuron['error']
+            X = [neuron['act_val'] for neuron in layer] 
 
     def desc(self):
         return self.nn
