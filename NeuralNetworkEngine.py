@@ -1,38 +1,29 @@
-import numpy as np
-import random
-
+import numpy as np 
+import random 
+import math
 
 class NeuralNetwork:
-    def __init__(self, size, hidden_layers=0, output=False):
+    def __init__(self, size, hidden_layers=[]):
         """
         Initializing a neural network.
         The number of neurons will depend on the number of features in the dataset.
         For this first version of the lib, I am assuming that the dataset recieved has some x number of features.
         For the images the dataset will usually have each pixel as its own 'feature' (with the value being the brightness value) for each image.
 
-        layers: defines the hidden layers and by default adds 16 neurons to each hidden layer
-        output: number of outputs
+        hidden_layers: defines the number of hidden layers and by default adds 16 neurons to each hidden layer. it will have the format: [no_of_layers, no_of_neurons] where no_of_neurons applies to all the hidden layers created 
         """
         self.nn = []
         self.size = size
-        #current_idx refers to the latest layer in the network
-        self.current_idx = 0
-        # structure of the neurons : { weights=[], bias=0, act_val=0 }
 
-        # initialize the first layer. this will have neurons equal to number of features in the dataset
-        # self.input_layer = [{"weights": [], "bias": 0, "act_val": 0}] * size
-        # self.nn.append(self.input_layer)
-        # initialize the hidden layers
-        if hidden_layers > 0:
-            for i in range(hidden_layers):
+        if hidden_layers:
+            for i in range(hidden_layers[0]):
                 new_layer = []
                 if i==0:
                     n_count = size
                 else:
                     n_count = len(self.nn[i-1])
-                # n_count = len(self.nn[i])
-                # each hidden layer has 16 neurons by default
-                for _ in range(16):
+                # each hidden layer 
+                for _ in range(hidden_layers[1]):
                     # initialize each neuron with random weights equal to number of neurons in the previous layer.
                     new_layer.append(
                         {
@@ -43,30 +34,15 @@ class NeuralNetwork:
                     )
                 self.nn.append(new_layer)
         
-        #add the output layer
-        # n_count = len(self.nn[len(self.nn)-1])
-        # new_layer = []
-        # for _ in range(output):
-        #     new_layer.append(
-        #         {
-        #             "weights": [random.random() for i in range(n_count)],
-        #             "bias": random.random(),
-        #             "act_val": None,
-        #         }
-        #     )
-        
-        # self.nn.append(new_layer)
-
-        self.current_idx = len(self.nn)
-
+    
     def add_layer(self, no_of_neurons):
-        # initializing the output layer - for now we keep it to multi class classification. for that we will calculate the number of unique values in the target column and create that many neurons in the output layer
-
-        if self.current_idx==0:
+        """
+        
+        """
+        if len(self.nn)==0:
             n_count = self.size
         else:
             n_count = len(self.nn[-1])
-        # n_count = len(self.nn[self.current_idx])
         new_layer = []
         for _ in range(no_of_neurons):
             new_layer.append(
@@ -79,8 +55,7 @@ class NeuralNetwork:
         
         self.nn.append(new_layer)
 
-        self.current_idx = len(self.nn)-1
-
+    
     def train(self, X, Y, lr, epochs):
         """
         In this train function I am going to assign the first layer of neurons with the activation values from the corresponding features
@@ -92,6 +67,7 @@ class NeuralNetwork:
 
         # training on each record in the training set.
         # NOTE:for the time being we do not utilize the sgd mini batch training method
+        print(f"neural network before training : {self.nn}")
 
         for k in range(epochs):
             total_loss = 0
@@ -103,7 +79,7 @@ class NeuralNetwork:
                 #forward pass from the input layer to the output layer all done inside this function
                 f_prop = self.forward_pass(x)
                 print(f_prop)
-                print("-"*40)
+                # print("-"*40)
                 # print(f"f_prop: {f_prop}\n")
                 #returning loss for each prediction
                 # print(f"true values: {y}, f_prop values")
@@ -113,29 +89,20 @@ class NeuralNetwork:
 
 
             # print(self.nn[0])
-            print(f"Epoch: {k+1}/{epochs} - Total Loss: {total_loss}")
-            
-
-    def relu(self, act_val):
-        return max(0, act_val)
-
+            print(f"Epoch: {k}/{epochs} - Total Loss: {total_loss}")
+        
+        # print(f"neural network after training : {self.nn}")
+        
+    
     def sigmoid(self, act_val, derivative=False):
         if derivative:
-            self.sigmoid_derivative(act_val)
+            return self.sigmoid_derivative(act_val)
         
-        return 1.0 / (1.0 + np.exp(-1*act_val))
+        return 1 / (1 + np.exp(-1*act_val))
 
     def sigmoid_derivative(self, act_val):
-        return act_val * (1.0-act_val)
-        
-    def softmax(self, x):
-        """
-        
-        """
-        probs = np.exp(x -np.max(x))
-        pred = probs/np.sum(probs)
-        return pred
-
+        return (act_val * (1.0-act_val))
+    
     def activate(self, x, neuron):
         
         act = 0
@@ -144,28 +111,23 @@ class NeuralNetwork:
         
         act += neuron['bias']
         return self.sigmoid(act)
-
+    
     def forward_pass(self, x):
         """
         Do calculation for the forward pass in order to get the proper activation values for the nodes in the hidden layers.
         """
         # first layer is input layer so it is ommitted from the loop
-        # print(f"starting act_vals: {x}")
+        # print(f"current network: {self.nn}\n")
         for layer in self.nn:
+            
             neuron_act_vals = []
             for neuron in layer:
                 # calculate the activation of each neuron in the current hidden layer using the prev layer's activation
                 neuron["act_val"] = self.activate(x, neuron)
                 neuron_act_vals.append(neuron["act_val"])
-
-            # print(f"Neuron value: {neuron_act_vals}")
-            # print("-"*30)
-                # act = neuron["act_val"]
-                # print(f"neuron activation value calculated: {act}")
+            
             x = neuron_act_vals
-        # print([i['act_val'] for i in self.nn[len(self.nn)-1]])
-
-        # print(f"final act_vals: {x} \n" )
+        
         return x
     
     def backward_prop(self, x, expected, lr):
@@ -200,47 +162,14 @@ class NeuralNetwork:
         #bias update = bias + (lr*neuron['error'])
         for i in range(len(self.nn)):
             layer = self.nn[i]
-            print(f"layer currently at: {len(layer)}")
+            # print(f"layer currently at: {len(layer)}")
             for j in range(len(layer)):
                 neuron = layer[j]
-                print(f"neuron currently at: {neuron}")
-                for k in neuron['weights']:
-                    k += (lr*x[j]*neuron['error'])
+                # print(f"neuron currently at: {neuron}")
+                for k in range(len(neuron['weights'])):
+                    neuron['weights'][k] += (lr * x[k] * neuron['error'])
                 neuron['bias']+=(lr*neuron['error'])
-            x = [neuron['act_val'] for neuron in layer]
-                
-
-    # def backward_propagation(self, X, expected, lr):
-    #     #backprop starting from the final layer 
-    #     for i in reversed(range(len(self.nn))):
-    #         layer = self.nn[i]
-    #         layer_errors = list()
-    #         if i == len(self.nn) - 1:
-    #             for j in range(len(layer)):
-    #                 neuron = layer[j]
-    #                 #calculate error of output neuron by getting difference between true and predicted value
-    #                 error = expected[j] - neuron['act_val']
-    #                 layer_errors.append(error)
-            
-    #         else:
-    #             #for all the hidden layer neurons get the error by using the eq: neuron_weights * neuron['error']
-    #             for j in range(len(layer)):
-    #                 neuron_error = sum([neuron['weights'][j] * neuron['error'] for neuron in self.nn[i+1]])
-    #                 layer_errors.append(neuron_error)
-            
-    #         #to calculate neuron error
-    #         for j in range(len(layer)):
-    #             neuron = layer[j]
-    #             neuron['error'] = layer_errors[j] * self.sigmoid(neuron['act_val'], derivative=True)
-            
-    #     #after all the neuron error calculations are done, we move onto weight and bias updates
-    #     for k in range(len(self.nn)):
-    #         layer = self.nn[k]
-    #         for neuron in layer:
-    #             for j in range(len(neuron['weights'])):
-    #                 neuron['weights'][j] += lr * X[j] * neuron['error']
-    #             neuron['bias'] += lr * neuron['error']
-    #         X = [neuron['act_val'] for neuron in self.nn[k]] 
+            x = [neuron['act_val'] for neuron in self.nn[i]]
 
     def desc(self):
         return self.nn
@@ -248,3 +177,6 @@ class NeuralNetwork:
     def predict(self, inputs):
         output = self.forward_pass(inputs)
         return output
+    
+
+
