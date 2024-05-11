@@ -10,7 +10,8 @@ class NeuralNetwork:
         For this first version of the lib, I am assuming that the dataset recieved has some x number of features.
         For the images the dataset will usually have each pixel as its own 'feature' (with the value being the brightness value) for each image.
 
-        hidden_layers: defines the number of hidden layers and by default adds 16 neurons to each hidden layer. it will have the format: [no_of_layers, no_of_neurons] where no_of_neurons applies to all the hidden layers created 
+        hidden_layers: defines the number of hidden layers. 
+        it will have the format: [no_of_layers, no_of_neurons] where no_of_neurons applies to all the hidden layers created 
         """
         self.nn = []
         self.size = size
@@ -35,7 +36,7 @@ class NeuralNetwork:
                 self.nn.append(new_layer)
         
     
-    def add_layer(self, no_of_neurons):
+    def add_layer(self, no_of_neurons, weight_initialization="default"):
         """
         
         """
@@ -45,10 +46,18 @@ class NeuralNetwork:
             n_count = len(self.nn[-1])
         new_layer = []
         for _ in range(no_of_neurons):
+            #weight initialization. NOTE: WORK IN PROGRESS
+            weights = []
+            if weight_initialization=="default":
+                weights =[random.random() for i in range(n_count)]
+                bias = random.random()
+            elif weight_initialization =="xavier":
+                weights=[]
+
             new_layer.append(
                 {
-                    "weights": [random.random() for i in range(n_count)],
-                    "bias": random.random(),
+                    "weights": weights,
+                    "bias": bias,
                     "act_val": None,
                 }
             )
