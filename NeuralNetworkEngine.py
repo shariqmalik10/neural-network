@@ -36,7 +36,7 @@ class NeuralNetwork:
                 self.nn.append(new_layer)
         
     
-    def add_layer(self, no_of_neurons, weight_initialization="default"):
+    def add_layer(self, no_of_neurons, activation_function='sigmoid' ,weight_initialization="default"):
         """
         
         """
@@ -47,13 +47,25 @@ class NeuralNetwork:
         new_layer = []
         for _ in range(no_of_neurons):
             #weight initialization. NOTE: WORK IN PROGRESS
+
             weights = []
             if weight_initialization=="default":
                 weights =[random.random() for i in range(n_count)]
                 bias = random.random()
             elif weight_initialization =="xavier":
-                weights=[]
+                #works best with sigmoid activation
+                #calculated as a random number with a uniform probability distribution (U) between the range -(1/sqrt(n)) and 1/sqrt(n), where n is the number of inputs to the node source: https://machinelearningmastery.com/weight-initialization-for-deep-learning-neural-networks/
+                factor = math.sqrt(1.0 / n_count)
+                weights=[random.uniform(-factor, factor) for _ in range(n_count)]
+                bias = random.uniform(-factor, factor)
+            elif weight_initialization == 'He':
+                #works best with relu activation
+                factor = math.sqrt(2/n_count)
+                #here i am using a uniform dist to draw the weights. NOTE: this code may change to draw weights directly from a Gaussian distribution as shown in the eq: calculated as a random number with a Gaussian probability distribution (G) with a mean of 0.0 and a standard deviation of sqrt(2/n), where n is the number of inputs to the node.
+                weights=[random.uniform(-factor, factor) for _ in range(n_count)]
+                bias = random.uniform(-factor, factor)
 
+            
             new_layer.append(
                 {
                     "weights": weights,
@@ -64,45 +76,6 @@ class NeuralNetwork:
         
         self.nn.append(new_layer)
 
-    
-    def train(self, X, Y, lr, epochs):
-        """
-        In this train function I am going to assign the first layer of neurons with the activation values from the corresponding features
-
-        epochs: how many times you want to train the nn with the entire training set
-        X: The feature dataset
-        y: target column
-        """
-
-        # training on each record in the training set.
-        # NOTE:for the time being we do not utilize the sgd mini batch training method
-        print(f"neural network before training : {self.nn}")
-
-        for k in range(epochs):
-            total_loss = 0
-            for i in range(len(X)):
-                #assumption: the dataframe is converted to a list like format. 
-                #NOTE: add iloc for dataframe support
-                x = X[i]
-                y = Y[i]
-                #forward pass from the input layer to the output layer all done inside this function
-                f_prop = self.forward_pass(x)
-                print(f_prop)
-                # print("-"*40)
-                # print(f"f_prop: {f_prop}\n")
-                #returning loss for each prediction
-                # print(f"true values: {y}, f_prop values")
-                total_loss += sum([(y[j] - f_prop[j]) ** 2 for j in range(len(f_prop))])
-                # ---------------------------------- #
-                self.backward_prop(x, y, lr)
-
-
-            # print(self.nn[0])
-            print(f"Epoch: {k}/{epochs} - Total Loss: {total_loss}")
-        
-        # print(f"neural network after training : {self.nn}")
-        
-    
     def sigmoid(self, act_val, derivative=False):
         if derivative:
             return self.sigmoid_derivative(act_val)
@@ -180,6 +153,41 @@ class NeuralNetwork:
                 neuron['bias']+=(lr*neuron['error'])
             x = [neuron['act_val'] for neuron in self.nn[i]]
 
+    def train(self, X, Y, lr, epochs):
+        """
+        In this train function I am going to assign the first layer of neurons with the activation values from the corresponding features
+
+        epochs: how many times you want to train the nn with the entire training set
+        X: The feature dataset
+        y: target column
+        """
+
+        # training on each record in the training set.
+        # NOTE:for the time being we do not utilize the sgd mini batch training method
+        print(f"neural network before training : {self.nn}")
+
+        for k in range(1, epochs+1):
+            total_loss = 0
+            for i in range(len(X)):
+                #assumption: the dataframe is converted to a list like format. 
+                #NOTE: add iloc for dataframe support
+                x = X[i]
+                y = Y[i]
+                #forward pass from the input layer to the output layer all done inside this function
+                f_prop = self.forward_pass(x)
+                print(f_prop)
+                # print("-"*40)
+                # print(f"f_prop: {f_prop}\n")
+                #returning loss for each prediction
+                # print(f"true values: {y}, f_prop values")
+                total_loss += sum([(y[j] - f_prop[j]) ** 2 for j in range(len(f_prop))])
+                # ---------------------------------- #
+                self.backward_prop(x, y, lr)
+
+
+            # print(self.nn[0])
+            print(f"Epoch: {k}/{epochs} - Total Loss: {total_loss}")
+        
     def desc(self):
         return self.nn
     
