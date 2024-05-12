@@ -38,7 +38,13 @@ class NeuralNetwork:
     
     def add_layer(self, no_of_neurons, activation_function='sigmoid' ,weight_initialization="default"):
         """
-        
+        Add a new layer to your neural network. 
+        no_of_neurons: The number of neurons in the layer
+        activation_function: specify the activation function to use. (NOTE: currently not working)
+        weight_initialization: method to use to initialize weights in the neurons with the layer. The options are: 
+                        -> 'default': Random number in the range (0,1)
+                        -> 'xavier' : random number within a specific factor(works best with sigmoid activation)
+                        -> 'He'     : random number within a specific factor(works best with relu activation)
         """
         if len(self.nn)==0:
             n_count = self.size
@@ -65,18 +71,23 @@ class NeuralNetwork:
                 weights=[random.uniform(-factor, factor) for _ in range(n_count)]
                 bias = random.uniform(-factor, factor)
 
-            
+
             new_layer.append(
                 {
                     "weights": weights,
                     "bias": bias,
                     "act_val": None,
+                    "act_func": "sigmoid"
                 }
             )
         
         self.nn.append(new_layer)
 
     def sigmoid(self, act_val, derivative=False):
+        """
+        act_val: activation value of the neuron
+        derivative: boolean value. returns derivative of sigmoid function
+        """
         if derivative:
             return self.sigmoid_derivative(act_val)
         
@@ -86,7 +97,13 @@ class NeuralNetwork:
         return (act_val * (1.0-act_val))
     
     def activate(self, x, neuron):
-        
+        """
+        Calculate activation value of neuron based on the input features and neuron's weights and biases
+        Eq: sigmoid(dot_product(neuron['weights'], x) + neuron['bias])
+
+        x: input features
+        neuron: dict containing weights and bias for the neuron
+        """
         act = 0
         for i in range(len(x)):
             act += (neuron['weights'][i] * x[i])
@@ -97,6 +114,7 @@ class NeuralNetwork:
     def forward_pass(self, x):
         """
         Do calculation for the forward pass in order to get the proper activation values for the nodes in the hidden layers.
+        x: input features
         """
         # first layer is input layer so it is ommitted from the loop
         # print(f"current network: {self.nn}\n")
@@ -113,6 +131,12 @@ class NeuralNetwork:
         return x
     
     def backward_prop(self, x, expected, lr):
+        """
+        Backward propagation function
+        x:input features
+        expected: true values
+        lr: learning rate.
+        """
         for i in reversed(range(len(self.nn))):
             layer = self.nn[i]
             layer_errors = list()
@@ -189,9 +213,16 @@ class NeuralNetwork:
             print(f"Epoch: {k}/{epochs} - Total Loss: {total_loss}")
         
     def desc(self):
+        """
+        A helper function for debugging purposes. 
+        Returns the neural network
+        """
         return self.nn
     
     def predict(self, inputs):
+        """
+        Returns predictions for the corresponding input
+        """
         output = self.forward_pass(inputs)
         return output
     
