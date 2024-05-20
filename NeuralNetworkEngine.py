@@ -105,7 +105,12 @@ class NeuralNetwork:
         neuron: dict containing weights and bias for the neuron
         """
         act = 0
+        # print(f"\nx is {len(x)}")
+        # print(f"\n neuron: {neuron}")
         for i in range(len(x)):
+            
+            # print(f"\n current index: {i}")
+            # print(f"\n neuron in question: {x}")
             act += (neuron['weights'][i] * x[i])
         
         act += neuron['bias']
@@ -177,7 +182,7 @@ class NeuralNetwork:
                 neuron['bias']+=(lr*neuron['error'])
             x = [neuron['act_val'] for neuron in self.nn[i]]
 
-    def train(self, X, Y, lr, epochs):
+    def train(self, X, Y, lr, epochs, batch_size=32):
         """
         In this train function I am going to assign the first layer of neurons with the activation values from the corresponding features
 
@@ -188,29 +193,55 @@ class NeuralNetwork:
 
         # training on each record in the training set.
         # NOTE:for the time being we do not utilize the sgd mini batch training method
-        print(f"neural network before training : {self.nn}")
-
-        for k in range(1, epochs+1):
+        # print(f"neural network before training : {self.nn}")
+        for k in range(1, epochs + 1):
             total_loss = 0
-            for i in range(len(X)):
-                #assumption: the dataframe is converted to a list like format. 
-                #NOTE: add iloc for dataframe support
-                x = X[i]
-                y = Y[i]
-                #forward pass from the input layer to the output layer all done inside this function
-                f_prop = self.forward_pass(x)
-                print(f_prop)
-                # print("-"*40)
-                # print(f"f_prop: {f_prop}\n")
-                #returning loss for each prediction
-                # print(f"true values: {y}, f_prop values")
-                total_loss += sum([(y[j] - f_prop[j]) ** 2 for j in range(len(f_prop))])
-                # ---------------------------------- #
-                self.backward_prop(x, y, lr)
+            for i in range(0, len(X), batch_size):
+                
+
+                batch_X = X.iloc[i:i + batch_size]
+                batch_Y = Y.iloc[i:i + batch_size]
+
+                # print(f"\n batch_X: {i}:{i+batch_size}")
+                # print(f"\n batch_Y: {batch_Y}")
+
+                #compute batches
+                for i in range(len(batch_X)):
+                    mini_loss = 0
+                    f_prop = self.forward_pass(batch_X.iloc[i])
+                    print(f"mini_loss: {mini_loss}")
+                    mini_loss += sum([(batch_Y.iloc[j] - f_prop[j]) ** 2 for j in range(len(f_prop))])
+                    print(f"mini_loss: {mini_loss}")
+                    self.backward_prop(batch_X.iloc[i], batch_Y.iloc[i], lr)
+
+                total_loss += mini_loss
+
+                
+
+            print(f"Epoch: {k}/{epochs} - Total Loss: {total_loss}\n")
+            
+
+        # for k in range(1, epochs+1):
+        #     total_loss = 0
+        #     for i in range(len(X)):
+        #         #assumption: the dataframe is converted to a list like format. 
+        #         #NOTE: add iloc for dataframe support
+        #         x = X.iloc[i]
+        #         y = Y.iloc[i]
+        #         #forward pass from the input layer to the output layer all done inside this function
+        #         f_prop = self.forward_pass(x)
+        #         # print(f_prop)
+        #         # print("-"*40)
+        #         # print(f"f_prop: {f_prop}\n")
+        #         #returning loss for each prediction
+        #         # print(f"true values: {y}, f_prop values")
+        #         total_loss += sum([(y[j] - f_prop[j]) ** 2 for j in range(len(f_prop))])
+        #         # ---------------------------------- #
+        #         self.backward_prop(x, y, lr)
 
 
             # print(self.nn[0])
-            print(f"Epoch: {k}/{epochs} - Total Loss: {total_loss}")
+            # print(f"Epoch: {k}/{epochs} - Total Loss: {total_loss}")
         
     def desc(self):
         """
